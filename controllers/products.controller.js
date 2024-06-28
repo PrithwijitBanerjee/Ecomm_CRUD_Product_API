@@ -1,6 +1,14 @@
+/** Load fs core module in node js **/
 const fs = require('node:fs');
+
+/** Load path core module in node js **/
 const path = require('node:path');
+
+/** Load Product related model **/
 const ProductModel = require('../models/products.models');
+
+/** Load json2csv external module to convert json data to csv(comma-seperated-value) data **/
+const json2csv = require('json2csv');
 
 const ProductController = {
     listAllProducts: (_, res) => {
@@ -109,9 +117,9 @@ const ProductController = {
                     res.status(500).send(error);
                 } else {
                     if (results.affectedRows !== 0) {
-                        res.status(200).json({
+                        res.status(201).json({
                             success: true,
-                            message: 'User added successfully !!!',
+                            message: 'Product added successfully !!!',
                             user: {
                                 pro_name,
                                 pro_desc,
@@ -166,25 +174,25 @@ const ProductController = {
                             unlinkOldImage((err2) => {
                                 if (err2) {
                                     console.log(err2);
-                                }
-
-                                ProductModel.updateProduct(productData, (err3, results) => {
-                                    if (err3) {
-                                        res.status(500).send(err3);
-                                    } else {
-                                        if (results.affectedRows !== 0) {
-                                            res.status(200).json({
-                                                success: true,
-                                                message: 'User of given id has been updated successfully',
-                                            });
+                                } else {
+                                    ProductModel.updateProduct(productData, (err3, results) => {
+                                        if (err3) {
+                                            res.status(500).send(err3);
                                         } else {
-                                            res.status(400).json({
-                                                success: false,
-                                                message: 'Updation Failed, Invalid Client Request !!!'
-                                            });
+                                            if (results.affectedRows !== 0) {
+                                                res.status(200).json({
+                                                    success: true,
+                                                    message: 'Product of given id has been updated successfully',
+                                                });
+                                            } else {
+                                                res.status(400).json({
+                                                    success: false,
+                                                    message: 'Updation Failed, Product of given id does not exist !!!'
+                                                });
+                                            }
                                         }
-                                    }
-                                });
+                                    });
+                                }
                             });
                         } else {
                             res.status(400).json({
@@ -202,11 +210,7 @@ const ProductController = {
                         if (pro_brand) fieldsToUpdate.pro_brand = pro_brand;
                         if (req.file) fieldsToUpdate.pro_image = img_url;
 
-                        unlinkOldImage((myErr) => {
-                            if (myErr) {
-                                console.log(myErr);
-                            }
-
+                        const partialUpdateProducts = fieldsToUpdate => {
                             if (Object.keys(fieldsToUpdate).length > 0 && _pId) {
                                 let SQL = "UPDATE ecommDb.products SET ";
                                 let queryParams = [];
@@ -225,12 +229,12 @@ const ProductController = {
                                         if (results.affectedRows !== 0) {
                                             res.status(200).json({
                                                 success: true,
-                                                message: 'User of given id has been updated successfully',
+                                                message: 'Product of given id has been updated successfully',
                                             });
                                         } else {
                                             res.status(400).json({
                                                 success: false,
-                                                message: 'Updation Failed, Product does not exist !!!'
+                                                message: 'Updation Failed, Product of given id does not exist !!!'
                                             });
                                         }
                                     }
@@ -241,7 +245,19 @@ const ProductController = {
                                     message: 'Update Failed, Invalid Client Request!'
                                 });
                             }
-                        });
+                        }
+                        if (fieldsToUpdate.pro_image) {
+                            unlinkOldImage((myErr) => {
+                                if (myErr) {
+                                    console.log(myErr);
+                                } else {
+                                    partialUpdateProducts(fieldsToUpdate);
+                                }
+
+                            });
+                        } else {
+                            partialUpdateProducts(fieldsToUpdate);
+                        }
                     }
                 }
             });
@@ -273,29 +289,55 @@ const ProductController = {
                 unlinkOldImage((err2) => {
                     if (err2) {
                         console.log(err2);
-                    }
-
-                    ProductModel.deleteProductById(_pId, (err3, results) => {
-                        if (err3) {
-                            res.status(500).send(err3);
-                        } else {
-                            if (results.affectedRows !== 0) {
-                                res.status(200).json({
-                                    success: true,
-                                    message: 'User of given id has been deleted successfully',
-                                });
+                    } else {
+                        ProductModel.deleteProductById(_pId, (err3, results) => {
+                            if (err3) {
+                                res.status(500).send(err3);
                             } else {
-                                res.status(400).json({
-                                    success: false,
-                                    message: 'Deletion Failed, Product does not exist !!!'
-                                });
+                                if (results.affectedRows !== 0) {
+                                    res.status(200).json({
+                                        success: true,
+                                        message: 'Product of given id has been deleted successfully',
+                                    });
+                                } else {
+                                    res.status(400).json({
+                                        success: false,
+                                        message: 'Deletion Failed, Product does not exist !!!'
+                                    });
+                                }
                             }
+                        });
+                    }
+                });
+            }
+        });
+    },
+
+    getDataToCsv: (_, res) => {
+        ProductModel.listAllProducts((error, results) => {
+            if (error) {
+                if (!res.headersSent) {
+                    res.status(500).send(error);
+                }
+            } else {
+                const json2csvParser = new json2csv.Parser(); // create an instance of Parser class of json2csv package ...
+                const csvData = json2csvParser.parse(results);
+                fs.writeFile(__dirname + '/../csv_files/products.csv', csvData, (err) => {
+                    if (err) {
+                        if (!res.headersSent) {
+                            throw new Error(err);
                         }
-                    });
+                    } else {
+                        res.attachment("products.csv"); // to tell express server the csv file should be downloadable in client's machine ....
+                        if (!res.headersSent) {
+                            res.status(200).send(csvData);
+                        }
+                    }
                 });
             }
         });
     }
+
 };
 
 module.exports = ProductController;

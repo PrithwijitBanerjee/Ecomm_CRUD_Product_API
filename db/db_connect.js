@@ -1,7 +1,7 @@
 /** load mysql driver for connect nodejs with mysql db **/
 const mysql = require('mysql');
 
-/** Establish a connection between Express server with mysql db **/
+/** Establish a connection string between Express server with mysql db **/
 const conn = mysql.createConnection({
     database: process.env.DB_NAME,
     host: process.env.DB_HOST,

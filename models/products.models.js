@@ -1,3 +1,4 @@
+/** Load connection object of node and mysql **/
 const conn = require('../db/db_connect');
 
 const ProductModel = {
