@@ -10,10 +10,13 @@ model.getAllUsers = cb => {
 }
 
 model.addUsr = (data, cb) => {
-    const SQL = "INSERT INTO ecommDb.users (name, email, phoneNo, age) values (?, ?, ?, ?)";
+    const SQL = "INSERT INTO ecommDb.users (name, email, phoneNo, age, password, security_answer, role) values (?, ?, ?, ?, ?, ?, ?)";
     conn.query(SQL, data, cb);
 }
-
+model.signInUsr = (data, cb) => {
+    const SQL = "SELECT * FROM ecommDb.users WHERE email=?";
+    conn.query(SQL, data, cb);
+}
 model.updateUsr = (data, cb) => {
     const SQL = "UPDATE ecommDb.users SET name=?, email=?, phoneNo=?, age=? WHERE _id=?";
     conn.query(SQL, data, cb);

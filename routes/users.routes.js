@@ -4,6 +4,12 @@ const express = require('express');
 /** Load user related controllers **/
 const userControllers = require('../controllers/users.controller');
 
+/** Load user auth verify token custom middleware **/
+const verifyUsrAuthToken = require('../middlewares/verifyUsrAuthToken.middleware');
+
+/** Load user role verify custom middleware **/
+const verifyUsrRole = require('../middlewares/verifyUserRole.middleware');
+
 /** create a router service for users **/
 const usersRouter = express.Router();
 
@@ -11,20 +17,23 @@ const usersRouter = express.Router();
 
 
 usersRouter
-    // GET all users  /GET
-    .get("/list", userControllers.getAllUsers)
+    // GET all users  /GET // Private route // Only Admin use can access this route
+    .get("/list", verifyUsrAuthToken, verifyUsrRole, userControllers.getAllUsers)
 
-    // POST add new user /POST
-    .post('/add', userControllers.addUser)
+    // POST sign-up new user /POST // Public API (Anyone Can Access It)
+    .post('/signUp', userControllers.signUpUser)
 
-    // DELETE user by :id  /DELETE 
-    .delete('/del/:id([0-9]+)', userControllers.delUsr)
+    // POST sign-in new user /POST // Public API (Anyone Can Access It)
+    .post('/signIn', userControllers.signInUser)
 
-    // PUT || PATCH update user by :id     /PUT || /PATCH
-    .all("/edit/:id([0-9]+)", userControllers.updateUsr)
+    // DELETE user by :id  /DELETE // Private route // Only Admin use can access this route
+    .delete('/del/:id([0-9]+)', verifyUsrAuthToken, verifyUsrRole, userControllers.delUsr)
 
-    // export all users data into user's csv file which can be downloadable  /GET ...
-    .get('/list/get-csv-users', userControllers.getDataToCsv);
+    // PUT || PATCH update user by :id     /PUT || /PATCH  // Private route // Only Admin use can access this route
+    .all("/edit/:id([0-9]+)", verifyUsrAuthToken, verifyUsrRole, userControllers.updateUsr)
+
+    // export all users data into user's csv file which can be downloadable  /GET ... // Private route // Only Admin use can access this route
+    .get('/list/get-csv-users', verifyUsrAuthToken, verifyUsrRole, userControllers.getDataToCsv);
 
 module.exports = usersRouter;
 console.log("users router is loading ...");

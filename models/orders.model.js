@@ -12,13 +12,13 @@ model.placeOrder = (data, cb) => {
 
 // View all orders details /GET orders 
 model.viewAllOrders = cb => {
-    const SQL = "SELECT o._id, p.pro_name, p.pro_desc, u.name, u.email from ecommDb.orders o INNER JOIN ecommDb.products p ON p._id = o._pId INNER JOIN ecommDb.users u ON u._id = o._uId";
+    const SQL = "SELECT o._id as order_id, p.pro_name, p.pro_desc, u.name, u.email, u.phoneNo, o.order_at from ecommDb.orders o INNER JOIN ecommDb.products p ON p._id = o._pId INNER JOIN ecommDb.users u ON u._id = o._uId";
     conn.query(SQL, cb);
 };
 
 // View particular order by order :id  /GET order by :id
 model.viewParticularOrder = (data, cb) => {
-    const SQL = "SELECT o._id, p.pro_name, p.pro_desc, u.name, u.email from ecommDb.orders o INNER JOIN ecommDb.products p ON p._id = o._pId INNER JOIN ecommDb.users u ON u._id = o._uId WHERE o._id=?";
+    const SQL = "SELECT o._id, p.pro_name, p.pro_desc, u.name, u.email, u.phoneNo, o.order_at from ecommDb.orders o INNER JOIN ecommDb.products p ON p._id = o._pId INNER JOIN ecommDb.users u ON u._id = o._uId WHERE o._id=?";
     conn.query(SQL, data, cb);
 };
 

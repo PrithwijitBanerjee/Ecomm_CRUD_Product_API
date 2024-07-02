@@ -153,7 +153,10 @@ const ProductController = {
 
             ProductModel.getProductImageById(_pId, (error, results) => {
                 if (error) {
-                    res.status(500).send(error);
+                    res.status(404).json({
+                        success: false,
+                        message: 'Updation Failed, product of given id does not exist !!!'
+                    });
                 } else {
                     const oldImagePath = results[0]?.pro_image ? __dirname + `/../public/assests/products/${path.basename(results[0].pro_image)}` : null;
 

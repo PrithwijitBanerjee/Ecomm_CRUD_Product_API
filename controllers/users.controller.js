@@ -1,8 +1,17 @@
 /** Load users related models **/
 const model = require('../models/users.models');
 
+/** Load bcryptjs external module for password hashing **/
+const bcryptjs = require('bcryptjs');
+
+/** Load jsonwebtoken external module for generating random token in token based authentication **/
+const jwt = require('jsonwebtoken');
+
 /** Load fs core module in node js **/
 const fs = require('node:fs');
+
+/** Load custom validation of email, phoneNo, and password **/
+const { validateEmail, validatePassword, validatePhoneNumber } = require('../helpers/customValidation');
 
 /** Load user related models **/
 const userModels = require("../models/users.models");
@@ -28,34 +37,121 @@ controller.getAllUsers = (_, res) => {
     });
 };
 
-// POST add new user /POST
-controller.addUser = (req, res) => {
-    const { name, email, phoneNo, age } = req.body;
-    if (name && email && phoneNo && age) {
-        model.addUsr([name, email, phoneNo, age], (error, results) => {
+// POST Sign-Up new user /POST
+controller.signUpUser = (req, res) => {
+    const { name, email, phoneNo, age, password, security_answer, role } = req.body;
+    if (name && email && phoneNo && age && password && security_answer && role) {
+        if (!validateEmail(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "SignUp Failed, Invalid Email Format !!!"
+            });
+        }
+
+        if (!validatePhoneNumber(phoneNo)) {
+            return res.status(400).json({
+                success: false,
+                message: "SignUp Failed, Invalid Phone Number Format !!!"
+            });
+        }
+
+        if (!validatePassword(password)) {
+            return res.status(400).json({
+                success: false,
+                message: "SignUp Failed, Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character !!!"
+            });
+        }
+        
+        const salt = bcryptjs.genSaltSync(10);
+        const hashPass = bcryptjs.hashSync(password, salt); // convert the original password into hash password ...
+        model.addUsr([name, email, phoneNo, age, hashPass, security_answer, role], (error, results) => {
             if (error) {
-                res.status(500).send(error);
+                if (!res.headersSent) {
+                    res.status(400).send({
+                        success: false,
+                        message: `User Sign-Up Failed, ${error?.sqlMessage}`
+                    });
+                }
             } else {
                 if (results.affectedRows !== 0) {
-                    res.status(201).json({
-                        success: true,
-                        message: "User has been added successfully"
-                    });
+                    if (!res.headersSent) {
+                        res.status(201).json({
+                            success: true,
+                            message: "User Sign-Up successfully"
+                        });
+                    }
                 } else {
-                    res.status(400).json({
-                        success: false,
-                        message: "You have a problem in your request !!!"
-                    });
+                    if (!res.headersSent) {
+                        res.status(400).json({
+                            success: false,
+                            message: "User Sign-Up Failed !!!"
+                        });
+                    }
                 }
             }
         })
     } else {
-        res.status(400).json({
-            success: false,
-            message: "Invalid Client Request !!!"
-        });
+        if (!res.headersSent) {
+            res.status(400).json({
+                success: false,
+                message: "SignUp Failed, Invalid Client Request !!!"
+            });
+        }
     }
 };
+
+// POST Sign-Up new user /POST
+controller.signInUser = (req, res) => {
+    const { email, password } = req.body;
+    if (email && password) {
+        model.signInUsr([email], (error, results) => {
+            if (error) {
+                res.status(500).send(error);
+            } else {
+                if (results?.length !== 0) {
+                    if (bcryptjs.compareSync(password, results[0].password)) { //comparing the password
+                        jwt.sign({
+                            email: results[0].email,
+                            role: results[0].role
+                        }, process.env.SECRET_KEY, {
+                            expiresIn: '1m'
+                        }, function (err, token) {
+                            if (err) {
+                                console.log(err);
+                                res.status(500).json({
+                                    success: false,
+                                    message: 'Token generation failed !!!'
+                                });
+                            } else {
+                                res.status(200).json({
+                                    success: true,
+                                    message: 'User Signed In successfully',
+                                    data: results[0],
+                                    _token: token,
+                                });
+                            }
+                        });
+                    } else {
+                        res.status(401).json({
+                            success: false,
+                            message: 'Sign-In Failed, Password does not match !!!'
+                        });
+                    }
+                } else {
+                    res.status(401).json({
+                        success: false,
+                        message: 'User email doesn\'t exist, please try with different mail Id ....'
+                    });
+                }
+            }
+        });
+    } else {
+        res.status(400).json({
+            success: false,
+            message: 'User Sign-In Failed, Please fill all the fields properly !!!'
+        });
+    }
+}
 
 // PUT || PATCH update user by :id     /PUT || /PATCH
 controller.updateUsr = (req, res) => {

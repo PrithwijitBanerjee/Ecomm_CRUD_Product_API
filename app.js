@@ -50,7 +50,7 @@ app.use((error, req, res, next) => {
     if (res.headersSent) {
         return next(error); // if headers are already sent, delegate to the default Express error handler
     }
-    res.status(500).json({ message: error.message });
+    res.status(500).json({err: true, message: error.message });
 });
 
 module.exports = app;

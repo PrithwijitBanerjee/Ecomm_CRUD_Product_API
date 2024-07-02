@@ -43,10 +43,17 @@ controller.viewAllOrders = (_, res) => {
         if (error) {
             res.status(500).send(error);
         } else {
-            res.status(200).json({
-                success: true,
-                orders_info: results
-            });
+            if (results?.length !== 0) {
+                res.status(200).json({
+                    success: true,
+                    orders_info: results
+                });
+            } else {
+                res.status(200).json({
+                    success: true,
+                    orders_info: null
+                });
+            }
         }
     });
 };
